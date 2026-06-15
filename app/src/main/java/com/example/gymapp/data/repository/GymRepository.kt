@@ -52,4 +52,11 @@ class GymRepository(private val dao: GymDao) {
     fun getExerciseHistoryForStats(exerciseId: Int): Flow<List<PerformedSetEntity>> {
         return dao.getExerciseHistoryForStats(exerciseId)
     }
+    // --- EDYCJA PLANU ---
+    suspend fun getWorkoutPlanById(planId: Int) = dao.getWorkoutPlanById(planId)
+    suspend fun getPlanExercisesByPlanId(planId: Int) = dao.getPlanExercisesByPlanId(planId)
+    suspend fun getPlanSetsByExerciseIds(ids: List<Int>) = dao.getPlanSetsByExerciseIds(ids)
+    suspend fun updateWorkoutPlan(plan: WorkoutPlanEntity): Int = dao.updateWorkoutPlan(plan)
+
+    suspend fun deletePlanExercisesByPlanId(planId: Int): Int = dao.deletePlanExercisesByPlanId(planId)
 }

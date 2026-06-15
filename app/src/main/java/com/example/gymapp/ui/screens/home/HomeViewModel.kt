@@ -54,13 +54,3 @@ class HomeViewModel(private val repository: GymRepository) : ViewModel() {
         _currentMonth.value = _currentMonth.value.plusMonths(1)
     }
 }
-
-class HomeViewModelFactory(private val repository: GymRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}

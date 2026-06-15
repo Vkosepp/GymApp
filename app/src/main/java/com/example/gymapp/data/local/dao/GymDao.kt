@@ -51,4 +51,18 @@ interface GymDao {
         ORDER BY workout_sessions.dateTimestamp ASC
     """)
     fun getExerciseHistoryForStats(exerciseId: Int): Flow<List<PerformedSetEntity>>
+    @Query("SELECT * FROM workout_plans WHERE id = :planId")
+    suspend fun getWorkoutPlanById(planId: Int): WorkoutPlanEntity?
+
+    @Query("SELECT * FROM plan_exercises WHERE planId = :planId")
+    suspend fun getPlanExercisesByPlanId(planId: Int): List<PlanExerciseEntity>
+
+    @Query("SELECT * FROM plan_sets WHERE planExerciseId IN (:planExerciseIds)")
+    suspend fun getPlanSetsByExerciseIds(planExerciseIds: List<Int>): List<PlanSetEntity>
+
+    @Update
+    suspend fun updateWorkoutPlan(plan: WorkoutPlanEntity): Int // Dodano: Int
+
+    @Query("DELETE FROM plan_exercises WHERE planId = :planId")
+    suspend fun deletePlanExercisesByPlanId(planId: Int): Int // Dodano: Int
 }

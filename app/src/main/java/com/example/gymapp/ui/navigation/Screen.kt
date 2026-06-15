@@ -14,4 +14,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
     object ActiveWorkout : Screen("active_workout", "Trening", Icons.Default.PlayArrow)
     object PlanEditor : Screen("plan_editor", "Edytor Planu", Icons.Default.Edit)
+    // W pliku ui/navigation/Screen.kt dodaj:
+    object ExerciseSearch : Screen("exercise_search", "Wybierz ćwiczenia", Icons.Default.Search)
 }
