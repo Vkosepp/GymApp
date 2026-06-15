@@ -18,9 +18,10 @@ import kotlinx.coroutines.launch
         PlanExerciseEntity::class,
         PlanSetEntity::class,
         WorkoutSessionEntity::class,
-        PerformedSetEntity::class
+        PerformedSetEntity::class,
+        ScheduledWorkoutEntity::class // <-- Dodana nowa tabela
     ],
-    version = 1,
+    version = 2, // <-- Podnosimy wersję na 2
     exportSchema = false
 )
 abstract class GymDatabase : RoomDatabase() {
@@ -38,7 +39,7 @@ abstract class GymDatabase : RoomDatabase() {
                     GymDatabase::class.java,
                     "gym_database"
                 )
-                    // Podpinamy nasz callback do automatycznego uzupełniania danych
+                    .fallbackToDestructiveMigration() // <-- Baza sama się zresetuje przy zmianie wersji
                     .addCallback(GymDatabaseCallback(context))
                     .build()
                 INSTANCE = instance

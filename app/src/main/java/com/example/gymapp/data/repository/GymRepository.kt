@@ -59,4 +59,8 @@ class GymRepository(private val dao: GymDao) {
     suspend fun updateWorkoutPlan(plan: WorkoutPlanEntity): Int = dao.updateWorkoutPlan(plan)
 
     suspend fun deletePlanExercisesByPlanId(planId: Int): Int = dao.deletePlanExercisesByPlanId(planId)
+
+    suspend fun insertScheduledWorkout(scheduledWorkout: ScheduledWorkoutEntity) = dao.insertScheduledWorkout(scheduledWorkout)
+    fun getAllScheduledWorkouts() = dao.getAllScheduledWorkouts()
+    suspend fun deleteScheduledWorkout(scheduleId: Int) = dao.deleteScheduledWorkout(scheduleId)
 }

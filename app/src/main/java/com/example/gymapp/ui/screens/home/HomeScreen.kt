@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,18 +32,28 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onNavigateToWorkout: () -> Unit
+    onNavigateToWorkout: (Int) -> Unit
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
-    val workoutPlans by viewModel.workoutPlans.collectAsState()
+    val scheduledPlans by viewModel.scheduledPlans.collectAsState()
+    val availablePlans by viewModel.availablePlans.collectAsState()
+
+    // Filtrujemy plany tylko dla wybranej daty
+    val plansForSelectedDate = scheduledPlans.filter { it.date == selectedDate }
+
+    // Lista unikalnych dat, w których jest jakikolwiek trening (do oznaczania kropką)
+    val datesWithWorkouts = scheduledPlans.map { it.date }.toSet()
+
+    // Stan kontrolujący wyświetlanie okienka przypisywania planu
+    var showAssignDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-        // Komponent Kalendarza
         CustomCalendar(
             currentMonth = currentMonth,
             selectedDate = selectedDate,
+            datesWithWorkouts = datesWithWorkouts, // Przekazujemy daty do oznaczenia
             onPreviousMonth = { viewModel.onPreviousMonth() },
             onNextMonth = { viewModel.onNextMonth() },
             onDateSelected = { viewModel.onDateSelected(it) }
@@ -49,45 +61,92 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Przycisk Start (Placeholder na to, o czym pisałeś w głównych założeniach)
-        Button(
-            onClick = { /* TODO: Rozpocznij dzisiejszy trening */ },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Rozpocznij trening na dziś")
+            Text(text = "Treningi na: ${selectedDate}", style = MaterialTheme.typography.titleMedium)
+            IconButton(onClick = { showAssignDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Przypisz plan")
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Nadchodzące treningi:", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (workoutPlans.isEmpty()) {
-            Text("Brak zaplanowanych treningów.", color = Color.Gray)
+        if (plansForSelectedDate.isEmpty()) {
+            Text("Brak zaplanowanych treningów na ten dzień. Kliknij +, aby przypisać plan.", color = Color.Gray)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(workoutPlans) { plan ->
+                items(plansForSelectedDate) { scheduledItem ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().clickable { onNavigateToWorkout() },
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Text(
-                            text = plan.title,
-                            modifier = Modifier.padding(16.dp),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = scheduledItem.planTitle, fontWeight = FontWeight.Bold)
+                            }
+
+                            Row {
+                                Button(onClick = { onNavigateToWorkout(scheduledItem.planId) }) {
+                                    Text("Start")
+                                }
+                                IconButton(onClick = { viewModel.removeScheduledPlan(scheduledItem.scheduleId) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
+    // Okienko przypisywania planu
+    if (showAssignDialog) {
+        AlertDialog(
+            onDismissRequest = { showAssignDialog = false },
+            title = { Text("Przypisz plan do: $selectedDate") },
+            text = {
+                if (availablePlans.isEmpty()) {
+                    Text("Nie masz jeszcze żadnych planów. Przejdź do zakładki Plany, aby je stworzyć.")
+                } else {
+                    LazyColumn {
+                        items(availablePlans) { plan ->
+                            Text(
+                                text = plan.title,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.schedulePlanForDate(plan.id, selectedDate)
+                                        showAssignDialog = false
+                                    }
+                                    .padding(16.dp)
+                            )
+                            Divider()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAssignDialog = false }) { Text("Anuluj") }
+            }
+        )
+    }
 }
 
+// Zaktualizowany komponent Kalendarza
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CustomCalendar(
     currentMonth: YearMonth,
     selectedDate: LocalDate,
+    datesWithWorkouts: Set<LocalDate>, // Nowy parametr
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateSelected: (LocalDate) -> Unit
@@ -97,57 +156,32 @@ fun CustomCalendar(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Nagłówek: Miesiąc i przyciski
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onPreviousMonth) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Poprzedni miesiąc")
-                }
-
-                // Formatyzacja miesiąca np. "Wrzesień 2025"
-                val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("pl", "PL"))
-                    .replaceFirstChar { it.uppercase() }
-                Text(
-                    text = "$monthName ${currentMonth.year}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                IconButton(onClick = onNextMonth) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Następny miesiąc")
-                }
+                IconButton(onClick = onPreviousMonth) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Poprzedni miesiąc") }
+                val monthName = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("pl", "PL")).replaceFirstChar { it.uppercase() }
+                Text(text = "$monthName ${currentMonth.year}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                IconButton(onClick = onNextMonth) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Następny miesiąc") }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Dni tygodnia (Pn, Wt, Śr...)
             val daysOfWeek = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd")
             Row(modifier = Modifier.fillMaxWidth()) {
                 daysOfWeek.forEach { day ->
-                    Text(
-                        text = day,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Siatka dni
             val daysInMonth = currentMonth.lengthOfMonth()
-            // currentMonth.atDay(1).dayOfWeek.value zwraca 1 dla Pn, 7 dla Nd.
-            // Odejmujemy 1, żeby mieć ilość pustych komórek przed pierwszym dniem miesiąca.
             val firstDayOfWeek = currentMonth.atDay(1).dayOfWeek.value - 1
-
-            // Tworzymy listę wszystkich komórek w siatce (puste + dni miesiąca)
             val gridItems = List(firstDayOfWeek) { null } + (1..daysInMonth).toList()
-            val rows = gridItems.chunked(7) // Dzielimy na tygodnie (wiersze po 7 elementów)
+            val rows = gridItems.chunked(7)
 
             Column {
                 rows.forEach { row ->
@@ -155,17 +189,17 @@ fun CustomCalendar(
                         for (i in 0 until 7) {
                             val day = row.getOrNull(i)
                             if (day == null) {
-                                // Pusta komórka na początku lub końcu miesiąca
                                 Spacer(modifier = Modifier.weight(1f))
                             } else {
                                 val date = currentMonth.atDay(day)
                                 val isSelected = date == selectedDate
                                 val isToday = date == LocalDate.now()
+                                val hasWorkout = datesWithWorkouts.contains(date) // Sprawdzamy czy dzień ma trening
 
-                                Box(
+                                Column(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .aspectRatio(1f) // Kwadratowe komórki
+                                        .aspectRatio(1f)
                                         .clip(CircleShape)
                                         .background(
                                             when {
@@ -175,7 +209,8 @@ fun CustomCalendar(
                                             }
                                         )
                                         .clickable { onDateSelected(date) },
-                                    contentAlignment = Alignment.Center
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(
                                         text = day.toString(),
@@ -183,6 +218,16 @@ fun CustomCalendar(
                                         else if (isToday) MaterialTheme.colorScheme.onPrimaryContainer
                                         else MaterialTheme.colorScheme.onSurface
                                     )
+                                    // Kropka oznaczająca przypisany trening
+                                    if (hasWorkout) {
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(top = 2.dp)
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary)
+                                        )
+                                    }
                                 }
                             }
                         }

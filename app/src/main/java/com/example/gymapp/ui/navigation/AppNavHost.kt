@@ -22,6 +22,8 @@ import com.example.gymapp.ui.screens.plans.PlansScreen
 import com.example.gymapp.ui.screens.plans.PlansViewModel
 import com.example.gymapp.utils.GymViewModelFactory
 import androidx.navigation.navArgument
+import com.example.gymapp.ui.screens.workout.ActiveWorkoutScreen
+import com.example.gymapp.ui.screens.workout.ActiveWorkoutViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -45,7 +47,10 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
             val homeViewModel: HomeViewModel = viewModel(factory = factory)
             HomeScreen(
                 viewModel = homeViewModel,
-                onNavigateToWorkout = { navController.navigate(Screen.ActiveWorkout.route) }
+                onNavigateToWorkout = { planId ->
+                    // Przekazujemy ID planu prosto do ścieżki
+                    navController.navigate("${Screen.ActiveWorkout.route}/$planId")
+                }
             )
         }
 
@@ -76,8 +81,19 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         composable(Screen.Stats.route) { Text("Ekran 4: Statystyki i wykres") }
         composable(Screen.Profile.route) { Text("Ekran 5: Profil, waga i galeria") }
 
-        // --- UKRYTE EKRANY SZCZEGÓŁOWE ---
-        composable(Screen.ActiveWorkout.route) { Text("Ekran Aktywnego Treningu ze stoperem!") }
+        composable(
+            route = "${Screen.ActiveWorkout.route}/{planId}",
+            arguments = listOf(androidx.navigation.navArgument("planId") { type = androidx.navigation.NavType.IntType })
+        ) { backStackEntry ->
+            val planId = backStackEntry.arguments?.getInt("planId") ?: return@composable
+            val activeWorkoutViewModel: ActiveWorkoutViewModel = viewModel(factory = factory)
+
+            ActiveWorkoutScreen(
+                viewModel = activeWorkoutViewModel,
+                planId = planId,
+                onNavigateBack = { navController.popBackStack(Screen.Home.route, inclusive = false) }
+            )
+        }
 
         composable(
             route = "${Screen.PlanEditor.route}?exerciseIds={exerciseIds}&planId={planId}",

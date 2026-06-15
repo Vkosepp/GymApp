@@ -65,4 +65,12 @@ interface GymDao {
 
     @Query("DELETE FROM plan_exercises WHERE planId = :planId")
     suspend fun deletePlanExercisesByPlanId(planId: Int): Int // Dodano: Int
+    @Insert
+    suspend fun insertScheduledWorkout(scheduledWorkout: ScheduledWorkoutEntity): Long
+
+    @Query("SELECT * FROM scheduled_workouts")
+    fun getAllScheduledWorkouts(): Flow<List<ScheduledWorkoutEntity>>
+
+    @Query("DELETE FROM scheduled_workouts WHERE id = :scheduleId")
+    suspend fun deleteScheduledWorkout(scheduleId: Int): Int
 }
