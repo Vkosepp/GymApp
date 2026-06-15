@@ -22,8 +22,14 @@ import com.example.gymapp.ui.screens.plans.PlansScreen
 import com.example.gymapp.ui.screens.plans.PlansViewModel
 import com.example.gymapp.utils.GymViewModelFactory
 import androidx.navigation.navArgument
+import com.example.gymapp.ui.screens.profile.ProfileScreen
+import com.example.gymapp.ui.screens.profile.ProfileViewModel
+import com.example.gymapp.ui.screens.settings.SettingsScreen
+import com.example.gymapp.ui.screens.settings.SettingsViewModel
 import com.example.gymapp.ui.screens.workout.ActiveWorkoutScreen
 import com.example.gymapp.ui.screens.workout.ActiveWorkoutViewModel
+import com.example.gymapp.ui.screens.stats.StatsScreen
+import com.example.gymapp.ui.screens.stats.StatsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -40,7 +46,10 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         startDestination = Screen.Home.route,
         modifier = modifier
     ) {
-        composable(Screen.Settings.route) { Text("Ekran 3: Ustawienia") }
+        composable(Screen.Settings.route) {
+            val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+            SettingsScreen(viewModel = settingsViewModel)
+        }
 
         // --- EKRAN 1: Kalendarz ---
         composable(Screen.Home.route) {
@@ -78,8 +87,14 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
             )
         }
 
-        composable(Screen.Stats.route) { Text("Ekran 4: Statystyki i wykres") }
-        composable(Screen.Profile.route) { Text("Ekran 5: Profil, waga i galeria") }
+        composable(Screen.Stats.route) {
+            val statsViewModel: StatsViewModel = viewModel(factory = factory)
+            StatsScreen(viewModel = statsViewModel)
+        }
+        composable(Screen.Profile.route) {
+            val profileViewModel: ProfileViewModel = viewModel(factory = factory)
+            ProfileScreen(viewModel = profileViewModel)
+        }
 
         composable(
             route = "${Screen.ActiveWorkout.route}/{planId}",

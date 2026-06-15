@@ -63,4 +63,20 @@ class GymRepository(private val dao: GymDao) {
     suspend fun insertScheduledWorkout(scheduledWorkout: ScheduledWorkoutEntity) = dao.insertScheduledWorkout(scheduledWorkout)
     fun getAllScheduledWorkouts() = dao.getAllScheduledWorkouts()
     suspend fun deleteScheduledWorkout(scheduleId: Int) = dao.deleteScheduledWorkout(scheduleId)
+
+    fun getAllPerformedSets(): Flow<List<PerformedSetEntity>> = dao.getAllPerformedSets()
+
+    suspend fun insertProgressPhoto(photo: ProgressPhotoEntity): Long = dao.insertProgressPhoto(photo)
+    fun getAllProgressPhotos() = dao.getAllProgressPhotos()
+
+    fun getUserProfile() = dao.getUserProfile()
+    suspend fun upsertUserProfile(user: UserEntity): Long = dao.upsertUserProfile(user)
+
+    suspend fun clearAllUserData() {
+        dao.clearAllWorkoutPlans()
+        dao.clearAllSessions()
+        dao.clearAllScheduled()
+        dao.clearAllPhotos()
+        dao.clearUserProfile()
+    }
 }

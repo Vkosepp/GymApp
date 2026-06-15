@@ -73,4 +73,33 @@ interface GymDao {
 
     @Query("DELETE FROM scheduled_workouts WHERE id = :scheduleId")
     suspend fun deleteScheduledWorkout(scheduleId: Int): Int
+
+    @Query("SELECT * FROM performed_sets")
+    fun getAllPerformedSets(): Flow<List<PerformedSetEntity>>
+
+    @Insert
+    suspend fun insertProgressPhoto(photo: ProgressPhotoEntity): Long
+
+    @Query("SELECT * FROM progress_photos ORDER BY dateTimestamp DESC")
+    fun getAllProgressPhotos(): Flow<List<ProgressPhotoEntity>>
+    @Query("SELECT * FROM user_profile WHERE id = 1")
+    fun getUserProfile(): Flow<UserEntity?>
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    suspend fun upsertUserProfile(user: UserEntity): Long
+
+    @Query("DELETE FROM workout_plans")
+    suspend fun clearAllWorkoutPlans(): Int // <-- Dodane : Int
+
+    @Query("DELETE FROM workout_sessions")
+    suspend fun clearAllSessions(): Int // <-- Dodane : Int
+
+    @Query("DELETE FROM scheduled_workouts")
+    suspend fun clearAllScheduled(): Int // <-- Dodane : Int
+
+    @Query("DELETE FROM progress_photos")
+    suspend fun clearAllPhotos(): Int // <-- Dodane : Int
+
+    @Query("DELETE FROM user_profile")
+    suspend fun clearUserProfile(): Int // <-- Dodane : Int
 }

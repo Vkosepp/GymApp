@@ -19,9 +19,11 @@ import kotlinx.coroutines.launch
         PlanSetEntity::class,
         WorkoutSessionEntity::class,
         PerformedSetEntity::class,
-        ScheduledWorkoutEntity::class // <-- Dodana nowa tabela
+        ScheduledWorkoutEntity::class,
+        ProgressPhotoEntity::class,
+        UserEntity::class // <-- DODANE
     ],
-    version = 2, // <-- Podnosimy wersję na 2
+    version = 4, // <-- ZMIANA NA 4
     exportSchema = false
 )
 abstract class GymDatabase : RoomDatabase() {
