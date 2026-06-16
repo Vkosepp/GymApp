@@ -23,6 +23,9 @@ data class ActiveSet(
 data class ActiveExercise(
     val exercise: ExerciseEntity,
     val isAdvanced: Boolean,
+    val eccentricTempo: Int,
+    val isometricTempo: Int,
+    val concentricTempo: Int,
     val sets: List<ActiveSet>
 )
 
@@ -62,6 +65,9 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
                 ActiveExercise(
                     exercise = baseEx,
                     isAdvanced = pEx.isAdvanced,
+                    eccentricTempo = pEx.eccentricTempo,   // <-- POBIERAMY TEMPO
+                    isometricTempo = pEx.isometricTempo,   // <-- POBIERAMY TEMPO
+                    concentricTempo = pEx.concentricTempo, // <-- POBIERAMY TEMPO
                     sets = setsForThis.map { setEntity ->
                         ActiveSet(
                             setNumber = setEntity.setNumber,
