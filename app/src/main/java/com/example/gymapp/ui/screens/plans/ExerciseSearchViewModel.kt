@@ -14,11 +14,15 @@ class ExerciseSearchViewModel(private val repository: GymRepository) : ViewModel
     private val _selectedMuscleGroup = MutableStateFlow("All")
     val selectedMuscleGroup = _selectedMuscleGroup.asStateFlow()
 
-    // Lista ID zaznaczonych ćwiczeń
     private val _selectedExerciseIds = MutableStateFlow<Set<Int>>(emptySet())
     val selectedExerciseIds = _selectedExerciseIds.asStateFlow()
 
-    // Dynamicznie filtrowana lista ćwiczeń z bazy Room
+    // ZMIANA: Pobieranie 8 najnowszych ID z historii
+    val recentExercisesIds: StateFlow<Set<Int>> = repository.getAllPerformedSets()
+        .map { sets ->
+            sets.sortedByDescending { it.id }.map { it.exerciseId }.distinct().take(8).toSet()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     val filteredExercises: StateFlow<List<ExerciseEntity>> = combine(
         _searchQuery,
         _selectedMuscleGroup,
@@ -31,7 +35,6 @@ class ExerciseSearchViewModel(private val repository: GymRepository) : ViewModel
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onQueryChange(newQuery: String) { _searchQuery.value = newQuery }
-
     fun onMuscleGroupSelect(group: String) { _selectedMuscleGroup.value = group }
 
     fun toggleExerciseSelection(id: Int) {

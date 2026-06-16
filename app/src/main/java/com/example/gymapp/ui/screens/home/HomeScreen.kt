@@ -48,6 +48,10 @@ fun HomeScreen(
     // Stan kontrolujący wyświetlanie okienka przypisywania planu
     var showAssignDialog by remember { mutableStateOf(false) }
 
+    var scheduleToDelete by remember { mutableStateOf<Int?>(null) }
+    val isToday = selectedDate == LocalDate.now()
+
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
         CustomCalendar(
@@ -93,7 +97,7 @@ fun HomeScreen(
                             }
 
                             Row {
-                                Button(onClick = { onNavigateToWorkout(scheduledItem.planId) }) {
+                                Button(onClick = { onNavigateToWorkout(scheduledItem.planId) }, enabled = isToday) {
                                     Text("Start")
                                 }
                                 IconButton(onClick = { viewModel.removeScheduledPlan(scheduledItem.scheduleId) }) {
@@ -138,6 +142,25 @@ fun HomeScreen(
             }
         )
     }
+
+    if (scheduleToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { scheduleToDelete = null },
+            title = { Text("Usunąć trening z kalendarza?") },
+            text = { Text("Czy na pewno chcesz usunąć ten trening z zaplanowanych na ten dzień?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeScheduledPlan(scheduleToDelete!!)
+                        scheduleToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Usuń") }
+            },
+            dismissButton = { TextButton(onClick = { scheduleToDelete = null }) { Text("Anuluj") } }
+        )
+    }
+
 }
 
 // Zaktualizowany komponent Kalendarza

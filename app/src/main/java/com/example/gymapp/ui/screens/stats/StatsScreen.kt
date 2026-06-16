@@ -1,14 +1,8 @@
 package com.example.gymapp.ui.screens.stats
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
@@ -28,78 +24,64 @@ import kotlin.math.sin
 fun StatsScreen(viewModel: StatsViewModel) {
     val allExercises by viewModel.allExercises.collectAsState()
     val selectedExercise by viewModel.selectedExercise.collectAsState()
-    val lineChartData by viewModel.lineChartData.collectAsState()
     val radarChartData by viewModel.radarChartData.collectAsState()
+    val progressData by viewModel.progressChartsData.collectAsState()
+    val timeFilter by viewModel.timeFilter.collectAsState()
 
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-        Text("Statystyki Ogólne", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("General statistics", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- WYKRES PAJĘCZYNOWY (Radar Chart) ---
-        Card(
-            modifier = Modifier.fillMaxWidth().height(250.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
+        Card(modifier = Modifier.fillMaxWidth().height(280.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Częstotliwość Partii Mięśniowych", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (radarChartData.isEmpty()) {
-                    Text("Brak danych z treningów.", color = Color.Gray)
-                } else {
-                    RadarChart(data = radarChartData, modifier = Modifier.fillMaxSize())
-                }
+                Text("Muscle Distribution", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                RadarChart(data = radarChartData, modifier = Modifier.fillMaxSize())
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- WYBÓR ĆWICZENIA DO WYKRESU LINIOWEGO ---
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
             OutlinedTextField(
-                value = selectedExercise?.name ?: "Wybierz ćwiczenie...",
-                onValueChange = {},
-                readOnly = true,
+                value = selectedExercise?.name ?: "Select Exercise...",
+                onValueChange = {}, readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 allExercises.forEach { exercise ->
-                    DropdownMenuItem(
-                        text = { Text(exercise.name) },
-                        onClick = {
-                            viewModel.selectExercise(exercise)
-                            expanded = false
-                        }
-                    )
+                    DropdownMenuItem(text = { Text(exercise.name) }, onClick = { viewModel.selectExercise(exercise); expanded = false })
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // --- WYKRES LINIOWY (Progres Ciężaru) ---
-        Card(
-            modifier = Modifier.fillMaxWidth().height(200.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Progres Ciężaru (Max KG)", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (selectedExercise == null) {
-                    Text("Wybierz ćwiczenie powyżej.", color = Color.Gray)
-                } else if (lineChartData.isEmpty()) {
-                    Text("Brak historii dla tego ćwiczenia.", color = Color.Gray)
-                } else {
-                    LineChart(data = lineChartData.map { it.second }, modifier = Modifier.fillMaxSize())
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            FilterChip(selected = timeFilter == "14", onClick = { viewModel.setTimeFilter("14") }, label = { Text("14 Dni") })
+            FilterChip(selected = timeFilter == "28", onClick = { viewModel.setTimeFilter("28") }, label = { Text("28 Dni") })
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // DWA WYKRESY OBOK SIEBIE (W RZĘDZIE)
+        Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(modifier = Modifier.weight(1f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text("Max [kg]", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LineChartWithAxes(data = progressData.map { Pair(it.label, it.maxWeight) }, modifier = Modifier.fillMaxSize())
+                }
+            }
+            Card(modifier = Modifier.weight(1f).fillMaxHeight(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text("1RM (Brzycki) [kg]", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LineChartWithAxes(data = progressData.map { Pair(it.label, it.estimated1RM) }, modifier = Modifier.fillMaxSize())
                 }
             }
         }
@@ -107,36 +89,50 @@ fun StatsScreen(viewModel: StatsViewModel) {
 }
 
 @Composable
-fun LineChart(data: List<Double>, modifier: Modifier = Modifier) {
+fun LineChartWithAxes(data: List<Pair<String, Double>>, modifier: Modifier = Modifier) {
     val lineColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
 
-    Canvas(modifier = modifier) {
-        if (data.size < 2) return@Canvas
+    Canvas(modifier = modifier.padding(bottom = 16.dp, start = 16.dp, end = 8.dp)) {
+        if (data.isEmpty()) return@Canvas
 
-        val maxWeight = data.maxOrNull() ?: 1.0
-        val minWeight = data.minOrNull() ?: 0.0
-        val range = if (maxWeight == minWeight) 1.0 else (maxWeight - minWeight)
+        val maxWeight = data.maxOfOrNull { it.second }?.let { if (it < 10.0) 10.0 else it } ?: 10.0
+        val minWeight = 0.0
+        val range = maxWeight - minWeight
 
-        val xStep = size.width / (data.size - 1)
+
+        val xStep = size.width / if (data.size > 1) (data.size - 1).toFloat() else 1f
+
         val path = Path()
 
-        data.forEachIndexed { index, weight ->
-            // Skalowanie wartości na oś Y (odwróconą, bo 0 to góra canvasu)
-            val normalizedY = 1f - ((weight - minWeight) / range).toFloat()
+        val textPaint = Paint().apply {
+            color = textColor
+            textSize = 24f
+            textAlign = Paint.Align.CENTER
+        }
+
+        // Rysowanie osi i punktów
+        data.forEachIndexed { index, point ->
+            val normalizedY = 1f - ((point.second - minWeight) / range).toFloat()
             val x = index * xStep
             val y = normalizedY * size.height
 
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-
-            // Kropki na punktach
             drawCircle(color = lineColor, radius = 6f, center = Offset(x, y))
+
+            // Label osi X (Data) na co drugim lub każdym
+            if (data.size < 8 || index % 2 == 0) {
+                drawContext.canvas.nativeCanvas.drawText(point.first, x, size.height + 30f, textPaint)
+            }
         }
 
-        drawPath(
-            path = path,
-            color = lineColor,
-            style = Stroke(width = 4f, cap = StrokeCap.Round)
-        )
+        // Rysowanie linii wykresu
+        drawPath(path = path, color = lineColor, style = Stroke(width = 4f, cap = StrokeCap.Round))
+
+        // Oś Y - Wartość maksymalna i minimalna po lewej
+        textPaint.textAlign = Paint.Align.RIGHT
+        drawContext.canvas.nativeCanvas.drawText("${maxWeight.toInt()}", -10f, 20f, textPaint)
+        drawContext.canvas.nativeCanvas.drawText("0", -10f, size.height, textPaint)
     }
 }
 
@@ -144,21 +140,27 @@ fun LineChart(data: List<Double>, modifier: Modifier = Modifier) {
 fun RadarChart(data: Map<String, Int>, modifier: Modifier = Modifier) {
     val labels = data.keys.toList()
     val values = data.values.toList()
-    val maxVal = values.maxOrNull()?.toFloat() ?: 1f
+    val maxVal = values.maxOrNull()?.toFloat()?.let { if (it == 0f) 1f else it } ?: 1f
 
     val primaryColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
 
     Canvas(modifier = modifier) {
-        val radius = size.minDimension / 2f * 0.8f // 80% dostępnej przestrzeni
+        val radius = size.minDimension / 2f * 0.7f
         val center = Offset(size.width / 2f, size.height / 2f)
         val angleStep = (2 * Math.PI) / labels.size
 
-        // Rysowanie "pajęczyny" (tła)
+        val textPaint = Paint().apply {
+            color = textColor
+            textSize = 28f
+            textAlign = Paint.Align.CENTER
+        }
+
         for (i in 1..4) {
             val stepRadius = radius * (i / 4f)
             val bgPath = Path()
             for (j in labels.indices) {
-                val angle = j * angleStep - (Math.PI / 2) // -PI/2 żeby zacząć od góry
+                val angle = j * angleStep - (Math.PI / 2)
                 val x = center.x + stepRadius * cos(angle).toFloat()
                 val y = center.y + stepRadius * sin(angle).toFloat()
                 if (j == 0) bgPath.moveTo(x, y) else bgPath.lineTo(x, y)
@@ -167,7 +169,6 @@ fun RadarChart(data: Map<String, Int>, modifier: Modifier = Modifier) {
             drawPath(path = bgPath, color = Color.Gray.copy(alpha = 0.3f), style = Stroke(width = 2f))
         }
 
-        // Rysowanie danych
         val dataPath = Path()
         labels.indices.forEach { j ->
             val value = values[j]
@@ -179,13 +180,15 @@ fun RadarChart(data: Map<String, Int>, modifier: Modifier = Modifier) {
 
             if (j == 0) dataPath.moveTo(x, y) else dataPath.lineTo(x, y)
 
-            // Rysowanie osi od środka do krawędzi
             val edgeX = center.x + radius * cos(angle).toFloat()
             val edgeY = center.y + radius * sin(angle).toFloat()
             drawLine(color = Color.Gray.copy(alpha = 0.3f), start = center, end = Offset(edgeX, edgeY), strokeWidth = 2f)
-
-            // Kropka wartości
             drawCircle(color = primaryColor, radius = 8f, center = Offset(x, y))
+
+            // ZMIANA: Etykiety sztywnych 7 partii wokół wykresu
+            val labelX = center.x + (radius + 40f) * cos(angle).toFloat()
+            val labelY = center.y + (radius + 40f) * sin(angle).toFloat()
+            drawContext.canvas.nativeCanvas.drawText(labels[j], labelX, labelY + 10f, textPaint)
         }
         dataPath.close()
         drawPath(path = dataPath, color = primaryColor.copy(alpha = 0.5f))
