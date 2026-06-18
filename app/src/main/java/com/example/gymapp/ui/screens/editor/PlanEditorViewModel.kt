@@ -2,6 +2,7 @@ package com.example.gymapp.ui.screens.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gymapp.data.local.entity.ExerciseEntity
 import com.example.gymapp.data.local.entity.PlanExerciseEntity
 import com.example.gymapp.data.local.entity.PlanSetEntity
 import com.example.gymapp.data.local.entity.WorkoutPlanEntity
@@ -131,5 +132,15 @@ class PlanEditorViewModel(private val repository: GymRepository) : ViewModel() {
             repository.insertPlanSets(allSetsToInsert)
             _saveSuccess.emit(true)
         }
+    }
+    val availableExercises = repository.getAllExercises().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun removeExercise(exerciseId: Int) {
+        _exercisesToEdit.update { list -> list.filter { it.exercise.id != exerciseId } }
+    }
+
+    fun addExercise(exercise: ExerciseEntity) {
+        if (_exercisesToEdit.value.any { it.exercise.id == exercise.id }) return
+        _exercisesToEdit.update { list -> list + ExerciseEditState(exercise) }
     }
 }

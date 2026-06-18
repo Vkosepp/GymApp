@@ -79,4 +79,6 @@ class GymRepository(private val dao: GymDao) {
         dao.clearAllPhotos()
         dao.clearUserProfile()
     }
+
+    suspend fun updateProgressPhoto(photo: ProgressPhotoEntity): Int = dao.updateProgressPhoto(photo)
 }

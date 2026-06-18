@@ -6,6 +6,7 @@ import com.example.gymapp.data.local.entity.ExerciseEntity
 import com.example.gymapp.data.local.entity.PerformedSetEntity
 import com.example.gymapp.data.local.entity.WorkoutSessionEntity
 import com.example.gymapp.data.repository.GymRepository
+import com.example.gymapp.ui.theme.AppSettingsState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -36,20 +37,25 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
 
     private val _planId = MutableStateFlow<Int?>(null)
 
-    // Stoper ogólny (liczy w górę)
     private val _timerSeconds = MutableStateFlow(0)
     val timerSeconds = _timerSeconds.asStateFlow()
     private var timerJob: Job? = null
 
-    // Minutnik przerwy (liczy w dół)
     private val _restTimerSeconds = MutableStateFlow(0)
     val restTimerSeconds = _restTimerSeconds.asStateFlow()
     private var restTimerJob: Job? = null
+
+    // Kanał powiadomień o wibracji wysyłany do widoku UI
+    private val _playVibrationEvent = MutableSharedFlow<Unit>()
+    val playVibrationEvent = _playVibrationEvent.asSharedFlow()
 
     private val _workoutFinished = MutableSharedFlow<Boolean>()
     val workoutFinished = _workoutFinished.asSharedFlow()
 
     fun startWorkout(planId: Int) {
+        // POPRAWKA: Jeśli aplikacja wraca z tła i dane treningu już tu są, przerywamy, by ich nie nadpisać
+        if (_planId.value == planId && _activeExercises.value.isNotEmpty()) return
+
         _planId.value = planId
         startTimer()
 
@@ -65,9 +71,9 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
                 ActiveExercise(
                     exercise = baseEx,
                     isAdvanced = pEx.isAdvanced,
-                    eccentricTempo = pEx.eccentricTempo,   // <-- POBIERAMY TEMPO
-                    isometricTempo = pEx.isometricTempo,   // <-- POBIERAMY TEMPO
-                    concentricTempo = pEx.concentricTempo, // <-- POBIERAMY TEMPO
+                    eccentricTempo = pEx.eccentricTempo,
+                    isometricTempo = pEx.isometricTempo,
+                    concentricTempo = pEx.concentricTempo,
                     sets = setsForThis.map { setEntity ->
                         ActiveSet(
                             setNumber = setEntity.setNumber,
@@ -84,7 +90,9 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
     }
 
     private fun startTimer() {
-        timerJob?.cancel()
+        // POPRAWKA: Jeśli stoper główny już działa, nie uruchamiamy go ponownie
+        if (timerJob?.isActive == true) return
+
         timerJob = viewModelScope.launch {
             while (true) {
                 delay(1000L)
@@ -93,14 +101,20 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
         }
     }
 
-    // --- LOGIKA PRZERWY ---
-    private fun startRestTimer(seconds: Int = 90) {
+    // POPRAWKA: Czas pobierany jest dynamicznie z ustawień wewnątrz funkcji
+    private fun startRestTimer() {
         restTimerJob?.cancel()
-        _restTimerSeconds.value = seconds
+        val chosenSeconds = AppSettingsState.defaultRestTime.value
+        _restTimerSeconds.value = chosenSeconds
+
         restTimerJob = viewModelScope.launch {
             while (_restTimerSeconds.value > 0) {
                 delay(1000L)
                 _restTimerSeconds.value -= 1
+            }
+            // Gdy odliczanie dobiegnie końca, odpalamy wibracje (jeśli są włączone w ustawieniach)
+            if (AppSettingsState.vibrationsEnabled.value) {
+                _playVibrationEvent.emit(Unit)
             }
         }
     }
@@ -126,11 +140,10 @@ class ActiveWorkoutViewModel(private val repository: GymRepository) : ViewModel(
             }
         }
 
-        // Jeżeli odhaczamy serię, włączamy przerwę
         if (isChecked) {
-            startRestTimer(90) // Domyślnie 90 sekund
+            startRestTimer()
         } else {
-            stopRestTimer() // Przerywamy jeśli ktoś "odklikał" serię przez pomyłkę
+            stopRestTimer()
         }
     }
 

@@ -1,5 +1,7 @@
 package com.example.gymapp.ui.screens.profile
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymapp.data.local.entity.ProgressPhotoEntity
@@ -19,6 +21,7 @@ class ProfileViewModel(private val repository: GymRepository) : ViewModel() {
     )
 
     // Galeria zostaje bez zmian
+    @RequiresApi(Build.VERSION_CODES.O)
     val groupedPhotos: StateFlow<Map<String, List<ProgressPhotoEntity>>> = repository.getAllProgressPhotos()
         .map { photos ->
             val formatter = DateTimeFormatter.ofPattern("LLLL yyyy").withZone(ZoneId.systemDefault())
@@ -29,12 +32,22 @@ class ProfileViewModel(private val repository: GymRepository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    fun addProgressPhoto(filePath: String, weightInput: String) {
+    fun addProgressPhoto(filePath: String, weightInput: String, descriptionInput: String) {
         viewModelScope.launch {
-            val weight = weightInput.toDoubleOrNull()
             repository.insertProgressPhoto(
-                ProgressPhotoEntity(filePath = filePath, dateTimestamp = System.currentTimeMillis(), weight = weight)
+                ProgressPhotoEntity(
+                    filePath = filePath,
+                    dateTimestamp = System.currentTimeMillis(),
+                    weight = weightInput.toDoubleOrNull(),
+                    description = descriptionInput.takeIf { it.isNotBlank() }
+                )
             )
+        }
+    }
+
+    fun updatePhotoDescription(photo: ProgressPhotoEntity, newDescription: String) {
+        viewModelScope.launch {
+            repository.updateProgressPhoto(photo.copy(description = newDescription.takeIf { it.isNotBlank() }))
         }
     }
 

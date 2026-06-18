@@ -22,7 +22,7 @@ import kotlin.math.sin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(viewModel: StatsViewModel) {
-    val allExercises by viewModel.allExercises.collectAsState()
+    val allExercises by viewModel.performedExercises.collectAsState()
     val selectedExercise by viewModel.selectedExercise.collectAsState()
     val radarChartData by viewModel.radarChartData.collectAsState()
     val progressData by viewModel.progressChartsData.collectAsState()

@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
         ProgressPhotoEntity::class,
         UserEntity::class // <-- DODANE
     ],
-    version = 4, // <-- ZMIANA NA 4
+    version = 5, // <-- ZMIANA NA 4
     exportSchema = false
 )
 abstract class GymDatabase : RoomDatabase() {

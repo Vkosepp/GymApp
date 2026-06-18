@@ -26,7 +26,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import com.example.gymapp.data.local.entity.ProgressPhotoEntity
 import java.io.File
 import java.io.FileOutputStream
 
@@ -39,6 +42,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
     // Stany dla dodawania zdjęcia progresu
     var showWeightDialog by remember { mutableStateOf(false) }
     var weightInput by remember { mutableStateOf("") }
+    var descriptionInput by remember { mutableStateOf("") }
     var pendingProgressUri by remember { mutableStateOf<Uri?>(null) }
 
     // Stany dla edycji profilu
@@ -47,7 +51,11 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
     var editAge by remember { mutableStateOf("") }
     var editHeight by remember { mutableStateOf("") }
 
-    // Funkcja do bezpiecznego zapisu (używamy jej w 2 miejscach)
+    // Stany dla pełnoekranowego podglądu zdjęcia
+    var expandedPhoto by remember { mutableStateOf<ProgressPhotoEntity?>(null) }
+    var editDescriptionMode by remember { mutableStateOf(false) }
+    var editDescriptionText by remember { mutableStateOf("") }
+
     fun saveImageToPrivateStorage(uri: Uri, prefix: String = "photo"): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
@@ -63,7 +71,6 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
         }
     }
 
-    // Launcher do awatara
     val avatarPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             val path = saveImageToPrivateStorage(uri, "avatar")
@@ -79,7 +86,6 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
         }
     }
 
-    // Launcher do galerii progresu
     val progressPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             pendingProgressUri = uri
@@ -91,7 +97,6 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 
         // --- SEKCJA PROFILU ---
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            // Klikalny Avatar
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -114,7 +119,6 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Informacje z przyciskiem edycji
             Column(modifier = Modifier.weight(1f)) {
                 Text(userProfile?.name ?: "Brak danych", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("Wiek: ${userProfile?.age ?: 0} | Wzrost: ${userProfile?.height ?: 0}cm", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -154,7 +158,13 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             photos.forEach { photo ->
-                                Card(modifier = Modifier.weight(1f).aspectRatio(0.75f), shape = RoundedCornerShape(8.dp)) {
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(0.75f)
+                                        .clickable { expandedPhoto = photo },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         AsyncImage(model = File(photo.filePath), contentDescription = "Zdjęcie progresu", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                                         if (photo.weight != null) {
@@ -191,7 +201,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                         name = editName.ifBlank { "Nieznajomy" },
                         age = editAge.toIntOrNull() ?: 0,
                         height = editHeight.toIntOrNull() ?: 0,
-                        avatarPath = null // null w tej funkcji zignoruje zmianę zdjęcia i zachowa stare
+                        avatarPath = null
                     )
                     showEditProfileDialog = false
                 }) { Text("Zapisz") }
@@ -200,13 +210,13 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
         )
     }
 
-    // --- DIALOG WAGI DLA ZDJĘCIA ---
+    // --- DIALOG WAGI I OPISU DLA NOWEGO ZDJĘCIA ---
     if (showWeightDialog) {
         AlertDialog(
             onDismissRequest = {
                 pendingProgressUri?.let { uri ->
                     val path = saveImageToPrivateStorage(uri, "progress")
-                    if (path != null) viewModel.addProgressPhoto(path, "")
+                    if (path != null) viewModel.addProgressPhoto(path, "", "")
                 }
                 showWeightDialog = false
                 pendingProgressUri = null
@@ -214,18 +224,22 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
             title = { Text("Dodajesz zdjęcie") },
             text = {
                 Column {
-                    Text("Podaj swoją aktualną wagę (opcjonalnie).")
+                    Text("Podaj aktualną wagę i opis (opcjonalnie).")
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(value = weightInput, onValueChange = { weightInput = it }, label = { Text("Waga (kg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = descriptionInput, onValueChange = { descriptionInput = it }, label = { Text("Opis (np. Początek redukcji)") }, singleLine = false, maxLines = 3)
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     pendingProgressUri?.let { uri ->
                         val path = saveImageToPrivateStorage(uri, "progress")
-                        if (path != null) viewModel.addProgressPhoto(path, weightInput)
+                        if (path != null) viewModel.addProgressPhoto(path, weightInput, descriptionInput)
                     }
                     showWeightDialog = false
                     weightInput = ""
+                    descriptionInput = ""
                     pendingProgressUri = null
                 }) { Text("Zapisz") }
             },
@@ -233,13 +247,69 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 TextButton(onClick = {
                     pendingProgressUri?.let { uri ->
                         val path = saveImageToPrivateStorage(uri, "progress")
-                        if (path != null) viewModel.addProgressPhoto(path, "")
+                        if (path != null) viewModel.addProgressPhoto(path, "", "")
                     }
                     showWeightDialog = false
                     weightInput = ""
+                    descriptionInput = ""
                     pendingProgressUri = null
                 }) { Text("Pomiń") }
             }
         )
+    }
+
+    // --- PEŁNOEKRANOWY PODGLĄD ZDJĘCIA ---
+    if (expandedPhoto != null) {
+        Dialog(
+            onDismissRequest = {
+                expandedPhoto = null
+                editDescriptionMode = false
+            },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
+                        IconButton(onClick = { expandedPhoto = null; editDescriptionMode = false }) {
+                            Text("X", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+
+                    AsyncImage(
+                        model = File(expandedPhoto!!.filePath),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    )
+
+                    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(24.dp)) {
+                        Text(text = "Waga: ${expandedPhoto!!.weight ?: "Brak"} kg", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (editDescriptionMode) {
+                            OutlinedTextField(
+                                value = editDescriptionText,
+                                onValueChange = { editDescriptionText = it },
+                                label = { Text("Opis") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = {
+                                viewModel.updatePhotoDescription(expandedPhoto!!, editDescriptionText)
+                                expandedPhoto = expandedPhoto!!.copy(description = editDescriptionText.takeIf { it.isNotBlank() })
+                                editDescriptionMode = false
+                            }) { Text("Zapisz opis") }
+                        } else {
+                            Text(text = expandedPhoto!!.description ?: "Brak opisu.", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = {
+                                editDescriptionText = expandedPhoto!!.description ?: ""
+                                editDescriptionMode = true
+                            }) { Text("Edytuj opis") }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

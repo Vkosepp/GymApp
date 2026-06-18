@@ -1,5 +1,10 @@
 package com.example.gymapp.ui.screens.workout
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,9 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import java.io.File
 
 @Composable
 fun ActiveWorkoutScreen(
@@ -21,6 +28,8 @@ fun ActiveWorkoutScreen(
     planId: Int,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(planId) {
         viewModel.startWorkout(planId)
     }
@@ -29,11 +38,30 @@ fun ActiveWorkoutScreen(
         viewModel.workoutFinished.collect { if (it) onNavigateBack() }
     }
 
+    // OBSŁUGA FIZYCZNYCH WIBRACJI TELEFONU
+    LaunchedEffect(Unit) {
+        viewModel.playVibrationEvent.collect {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(500L, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(500L)
+            }
+        }
+    }
+
     val exercises by viewModel.activeExercises.collectAsState()
     val timer by viewModel.timerSeconds.collectAsState()
     val restTimer by viewModel.restTimerSeconds.collectAsState()
 
-    // Formatowanie czasu całkowitego
     val min = timer / 60
     val sec = timer % 60
     val totalTimeStr = String.format("%02d:%02d", min, sec)
@@ -41,7 +69,6 @@ fun ActiveWorkoutScreen(
     Scaffold(
         bottomBar = {
             Column {
-                // PANEL PRZERWY (Pojawia się tylko gdy odliczamy przerwę)
                 if (restTimer > 0) {
                     val rMin = restTimer / 60
                     val rSec = restTimer % 60
@@ -66,7 +93,6 @@ fun ActiveWorkoutScreen(
                     }
                 }
 
-                // GŁÓWNY PASEK TRENINGU
                 BottomAppBar(containerColor = MaterialTheme.colorScheme.primaryContainer) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -89,8 +115,6 @@ fun ActiveWorkoutScreen(
             items(exercises) { activeEx ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-
-                        // ZMIANA: Nagłówek z nazwą i opcjonalnym tempem
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,7 +127,6 @@ fun ActiveWorkoutScreen(
                                 modifier = Modifier.weight(1f)
                             )
 
-                            // Jeśli tryb Advanced, pokazujemy wskaźnik tempa
                             if (activeEx.isAdvanced) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -122,7 +145,6 @@ fun ActiveWorkoutScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // ... (Tabela serii zostaje bez zmian)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Seria", modifier = Modifier.weight(1f))
                             Text("KG", modifier = Modifier.weight(1.5f))

@@ -102,4 +102,7 @@ interface GymDao {
 
     @Query("DELETE FROM user_profile")
     suspend fun clearUserProfile(): Int // <-- Dodane : Int
+
+    @Update
+    suspend fun updateProgressPhoto(photo: ProgressPhotoEntity): Int
 }

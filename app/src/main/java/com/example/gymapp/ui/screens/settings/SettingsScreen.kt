@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.gymapp.ui.theme.AppSettingsState
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
@@ -19,7 +20,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val vibrationsEnabled by viewModel.vibrationsEnabled.collectAsState()
-
+    val defaultRest by AppSettingsState.defaultRestTime.collectAsState()
     var showResetDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -29,6 +30,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         // --- PREFERENCJE ---
         Text("Wygląd i Działanie", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
+
+        Text("Domyślny Czas Przerwy: ${defaultRest}s", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Slider(
+            value = defaultRest.toFloat(),
+            onValueChange = { AppSettingsState.defaultRestTime.value = it.toInt() },
+            valueRange = 30f..300f,
+            steps = 8 // (300 - 30) / 30 = 9 przedziałów, czyli 8 kroków co 30 sekund
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
         SettingsSwitchRow(
             title = "Ciemny Motyw",

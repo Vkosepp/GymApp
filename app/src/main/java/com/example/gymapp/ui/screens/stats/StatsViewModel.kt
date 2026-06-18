@@ -1,5 +1,7 @@
 package com.example.gymapp.ui.screens.stats
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymapp.data.local.entity.ExerciseEntity
@@ -18,7 +20,13 @@ data class ProgressDataPoint(
 
 class StatsViewModel(private val repository: GymRepository) : ViewModel() {
 
-    val allExercises = repository.getAllExercises().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val performedExercises = combine(
+        repository.getAllExercises(),
+        repository.getAllPerformedSets()
+    ) { exercises, sets ->
+        val performedIds = sets.map { it.exerciseId }.toSet()
+        exercises.filter { it.id in performedIds }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedExercise = MutableStateFlow<ExerciseEntity?>(null)
     val selectedExercise = _selectedExercise.asStateFlow()
@@ -29,6 +37,7 @@ class StatsViewModel(private val repository: GymRepository) : ViewModel() {
     fun setTimeFilter(filter: String) { _timeFilter.value = filter }
     fun selectExercise(exercise: ExerciseEntity) { _selectedExercise.value = exercise }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     val progressChartsData: StateFlow<List<ProgressDataPoint>> = combine(
         _selectedExercise,
         _timeFilter,

@@ -8,5 +8,6 @@ data class ProgressPhotoEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val filePath: String,     // Ścieżka do prywatnego pliku aplikacji
     val dateTimestamp: Long,  // Kiedy dodano
-    val weight: Double?       // Opcjonalna waga przy dodawaniu
+    val weight: Double?,       // Opcjonalna waga przy dodawaniu
+    val description: String? = null
 )

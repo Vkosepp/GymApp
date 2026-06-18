@@ -1,9 +1,12 @@
 package com.example.gymapp.ui.screens.editor
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,11 +18,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PlanEditorScreen(
     viewModel: PlanEditorViewModel,
-    exerciseIds: String?, // Zmienione z idsString: String
-    planId: Int?,         // Dodane
+    exerciseIds: String?,
+    planId: Int?,
     onNavigateBack: () -> Unit
 ) {
-    // Inicjalizacja w zależności od trybu
     LaunchedEffect(exerciseIds, planId) {
         if (planId != null) {
             viewModel.initForEdit(planId)
@@ -28,7 +30,6 @@ fun PlanEditorScreen(
         }
     }
 
-    // Nasłuchiwanie na sukces zapisu, żeby wrócić do listy planów
     LaunchedEffect(Unit) {
         viewModel.saveSuccess.collect { success ->
             if (success) onNavigateBack()
@@ -38,6 +39,9 @@ fun PlanEditorScreen(
     val title by viewModel.planTitle.collectAsState()
     val isAdvanced by viewModel.isAdvancedMode.collectAsState()
     val exercises by viewModel.exercisesToEdit.collectAsState()
+    val availableExercises by viewModel.availableExercises.collectAsState()
+
+    var showAddExerciseDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
@@ -76,8 +80,19 @@ fun PlanEditorScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(item.exercise.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(item.exercise.muscleGroup, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.exercise.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                Text(item.exercise.muscleGroup, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                            IconButton(onClick = { viewModel.removeExercise(item.exercise.id) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Usuń ćwiczenie", tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -94,7 +109,7 @@ fun PlanEditorScreen(
                             }
                         }
 
-                        // Pola Advanced (Tempo: Opadanie - Przytrzymanie - Wznoszenie)
+                        // Pola Advanced
                         if (isAdvanced) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("Tempo (sekundy):", style = MaterialTheme.typography.labelMedium)
@@ -113,7 +128,19 @@ fun PlanEditorScreen(
                     }
                 }
             }
+
+            // Przycisk dodawania na samym dole listy
+            item {
+                OutlinedButton(
+                    onClick = { showAddExerciseDialog = true },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ) {
+                    Text("+ Dodaj kolejne ćwiczenie")
+                }
+            }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // --- ZAPIS ---
         Button(
@@ -123,9 +150,40 @@ fun PlanEditorScreen(
             Text("Potwierdź i Zapisz")
         }
     }
+
+    // --- DIALOG DODAWANIA ĆWICZENIA ---
+    if (showAddExerciseDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddExerciseDialog = false },
+            title = { Text("Wybierz ćwiczenie") },
+            text = {
+                if (availableExercises.isEmpty()) {
+                    Text("Ładowanie bazy ćwiczeń...")
+                } else {
+                    LazyColumn {
+                        items(availableExercises) { ex ->
+                            Text(
+                                text = ex.name,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.addExercise(ex)
+                                        showAddExerciseDialog = false
+                                    }
+                                    .padding(16.dp)
+                            )
+                            Divider()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAddExerciseDialog = false }) { Text("Anuluj") }
+            }
+        )
+    }
 }
 
-// Komponent pomocniczy dla czystszego kodu
 @Composable
 fun NumberInput(value: String, label: String, modifier: Modifier = Modifier, onValueChange: (String) -> Unit) {
     OutlinedTextField(
