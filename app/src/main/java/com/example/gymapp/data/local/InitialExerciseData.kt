@@ -4,24 +4,24 @@ import com.example.gymapp.data.local.entity.ExerciseEntity
 
 object InitialExerciseData {
     val exercises = listOf(
-        // Klatka piersiowa (Front chest)
-        ExerciseEntity(name = "Barbell Bench Press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Incline Dumbbell Press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Decline Barbell Press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Chest Flyes (Dumbbell)", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Cable Crossover", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Push-ups", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Flat bench press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Incline bench press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Dips (Chest focus)", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Incline Cable Fly", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Decline Dumbbell Fly", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Pec Deck Machine", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Low Cable Crossover", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Dumbbell Pullover", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Landmine Press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Smith Machine Bench Press", muscleGroup = "Front chest"),
-        ExerciseEntity(name = "Close-grip Bench Press", muscleGroup = "Front chest"),
+        // Klatka piersiowa (Chest)
+        ExerciseEntity(name = "Barbell Bench Press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Incline Dumbbell Press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Decline Barbell Press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Chest Flyes (Dumbbell)", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Cable Crossover", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Push-ups", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Flat bench press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Incline bench press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Dips (Chest focus)", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Incline Cable Fly", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Decline Dumbbell Fly", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Pec Deck Machine", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Low Cable Crossover", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Dumbbell Pullover", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Landmine Press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Smith Machine Bench Press", muscleGroup = "Chest"),
+        ExerciseEntity(name = "Close-grip Bench Press", muscleGroup = "Chest"),
 
         // Plecy (Back)
         ExerciseEntity(name = "Deadlift", muscleGroup = "Back"),
